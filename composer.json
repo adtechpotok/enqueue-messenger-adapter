@@ -1,0 +1,33 @@
+{
+  "name": "adtechpotok/enqueue-messenger-adapter-bundle",
+  "type": "symfony-bundle",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Anton Sadovnikov",
+      "email": "anton.sadovnikov@rambler-co.ru"
+    }
+  ],
+  "require": {
+    "php": ">=7.1",
+    "symfony/framework-bundle": "^3.4|^4.1",
+    "enqueue/messenger-adapter": "^0.1.1",
+    "enqueue/amqp-bunny": "^0.8.31"
+  },
+  "require-dev": {
+    "lookyman/phpstan-symfony": "dev-master"
+  },
+  "autoload": {
+    "psr-4": { "Adtechpotok\\Bundle\\EnqueueMessengerAdapterBundle\\": "src/" }
+  },
+  "config": {
+    "vendor-dir": "vendor",
+    "sort-packages": true
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-master": "1.0-dev"
+    }
+  },
+  "minimum-stability": "dev"
+}
