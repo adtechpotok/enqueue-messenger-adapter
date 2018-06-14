@@ -11,7 +11,7 @@
   "require": {
     "php": ">=7.1",
     "symfony/framework-bundle": "^3.4|^4.1",
-    "enqueue/messenger-adapter": "^0.1.1",
+    "adtechpotok/messenger-adapter": "dev-master",
     "enqueue/amqp-bunny": "^0.8.31"
   },
   "require-dev": {
