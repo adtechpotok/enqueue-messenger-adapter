@@ -8,16 +8,10 @@
       "email": "anton.sadovnikov@rambler-co.ru"
     }
   ],
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "https://github.com/scarbo87/messenger-adapter"
-    }
-  ],
   "require": {
     "php": ">=7.1",
     "symfony/dependency-injection": "~3.4.6|~4.0",
-    "enqueue/messenger-adapter": "dev-master",
+    "adtechpotok/messenger-adapter": "^0.1.4",
     "enqueue/amqp-bunny": "^0.8.31"
   },
   "autoload": {
