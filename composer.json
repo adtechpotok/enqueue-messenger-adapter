@@ -20,9 +20,6 @@
     "enqueue/messenger-adapter": "dev-master",
     "enqueue/amqp-bunny": "^0.8.31"
   },
-  "require-dev": {
-    "lookyman/phpstan-symfony": "dev-master"
-  },
   "autoload": {
     "psr-4": { "Adtechpotok\\Bundle\\EnqueueMessengerAdapterBundle\\": "src/" }
   },
