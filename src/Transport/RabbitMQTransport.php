@@ -2,6 +2,7 @@
 
 namespace Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Transport;
 
+use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Event\MessageExceptionEvent;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\RepeatMessageException;
 use Enqueue\AmqpBunny\AmqpProducer;
 use Enqueue\MessengerAdapter\ContextManager;
@@ -9,6 +10,7 @@ use Enqueue\MessengerAdapter\Exception\RejectMessageException;
 use Enqueue\MessengerAdapter\Exception\RequeueMessageException;
 use Enqueue\MessengerAdapter\Exception\SendingMessageFailedException;
 use Interop\Queue\Exception as InteropQueueException;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Serialization\DecoderInterface;
 use Symfony\Component\Messenger\Transport\Serialization\EncoderInterface;
@@ -17,6 +19,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class RabbitMQTransport implements TransportInterface
 {
+    private $dispatcher;
     private $decoder;
     private $encoder;
     private $contextManager;
@@ -24,8 +27,9 @@ class RabbitMQTransport implements TransportInterface
     private $debug;
     private $shouldStop;
 
-    public function __construct(DecoderInterface $decoder, EncoderInterface $encoder, ContextManager $contextManager, array $options = [], $debug = false)
+    public function __construct(EventDispatcherInterface $dispatcher, DecoderInterface $decoder, EncoderInterface $encoder, ContextManager $contextManager, array $options = [], $debug = false)
     {
+        $this->dispatcher = $dispatcher;
         $this->decoder = $decoder;
         $this->encoder = $encoder;
         $this->contextManager = $contextManager;
@@ -65,8 +69,8 @@ class RabbitMQTransport implements TransportInterface
             // TODO - тоже в try
             $envelope = $this->decoder->decode(
                 [
-                    'body' => $message->getBody(),
-                    'headers' => $message->getHeaders(),
+                    'body'       => $message->getBody(),
+                    'headers'    => $message->getHeaders(),
                     'properties' => $message->getProperties(),
                 ]
             );
@@ -76,6 +80,7 @@ class RabbitMQTransport implements TransportInterface
                 $consumer->acknowledge($message);
             } catch (RejectMessageException $e) {
                 $consumer->reject($message);
+                $this->dispatcher->dispatch(MessageExceptionEvent::REJECT, new MessageExceptionEvent($message, $e));
             } catch (RepeatMessageException $e) {
                 // удаляем исходное сообщение
                 $consumer->reject($message);
@@ -86,11 +91,15 @@ class RabbitMQTransport implements TransportInterface
                 }
                 if ($attempts->isRepeatable()) {
                     $this->send($envelope->with($attempts));
+                } else {
+                    $this->dispatcher->dispatch(MessageExceptionEvent::REPEAT, new MessageExceptionEvent($message, $e));
                 }
             } catch (RequeueMessageException $e) {
                 $consumer->reject($message, true);
+                $this->dispatcher->dispatch(MessageExceptionEvent::REQUEUE, new MessageExceptionEvent($message, $e));
             } catch (\Throwable $e) {
                 $consumer->reject($message);
+                $this->dispatcher->dispatch(MessageExceptionEvent::THROWABLE, new MessageExceptionEvent($message, $e));
             }
         }
     }
@@ -162,11 +171,11 @@ class RabbitMQTransport implements TransportInterface
         $resolver->setDefaults(
             [
                 'receiveTimeout' => null,
-                'deliveryDelay' => null,
-                'priority' => null,
-                'timeToLive' => null,
-                'topic' => ['name' => 'messages'],
-                'queue' => ['name' => 'messages'],
+                'deliveryDelay'  => null,
+                'priority'       => null,
+                'timeToLive'     => null,
+                'topic'          => ['name' => 'messages'],
+                'queue'          => ['name' => 'messages'],
             ]
         );
 

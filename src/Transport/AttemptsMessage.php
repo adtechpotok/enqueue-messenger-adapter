@@ -18,8 +18,7 @@ class AttemptsMessage implements EnvelopeItemInterface
         int $timeToDelay = RepeatMessageException::DEFAULT_DELAY,
         int $maxAttempts = RepeatMessageException::DEFAULT_ATTEMPTS,
         int $attempts = 0
-    )
-    {
+    ) {
         $this->timeToDelay = $timeToDelay;
         $this->maxAttempts = $maxAttempts;
         $this->attempts = $attempts;
@@ -62,7 +61,7 @@ class AttemptsMessage implements EnvelopeItemInterface
 
     public function unserialize($serialized): void
     {
-        ['timeToDelay' => $timeToDelay, 'maxAttempts' => $maxAttempts, 'attempts' => $attempts] = unserialize($serialized, ['allowed_classes' => false]);
+        list('timeToDelay' => $timeToDelay, 'maxAttempts' => $maxAttempts, 'attempts' => $attempts) = unserialize($serialized, ['allowed_classes' => false]);
         $this->__construct($timeToDelay, $maxAttempts, $attempts + 1);
     }
 }

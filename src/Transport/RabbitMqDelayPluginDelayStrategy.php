@@ -22,11 +22,11 @@ class RabbitMqDelayPluginDelayStrategy implements DelayStrategy
     public function delayMessage(AmqpContext $context, AmqpDestination $dest, AmqpMessage $message, $delayMsec)
     {
         $delayMessage = $context->createMessage($message->getBody(), $message->getProperties(), $message->getHeaders());
-        $delayMessage->setHeader('x-delay', (int)$delayMsec);
+        $delayMessage->setHeader('x-delay', (int) $delayMsec);
         $delayMessage->setRoutingKey($message->getRoutingKey());
 
         if ($dest instanceof AmqpTopic) {
-            $delayTopic = $context->createTopic('enqueue.' . $dest->getTopicName() . '.delayed');
+            $delayTopic = $context->createTopic('enqueue.'.$dest->getTopicName().'.delayed');
             $delayTopic->setType('x-delayed-message');
             $delayTopic->addFlag($dest->getFlags());
             $delayTopic->setArgument('x-delayed-type', $dest->getType());
@@ -45,7 +45,7 @@ class RabbitMqDelayPluginDelayStrategy implements DelayStrategy
             $context->bind(new AmqpBind($dest, $delayTopic, $delayMessage->getRoutingKey()));
         } else {
             throw new InvalidDestinationException(sprintf('The destination must be an instance of %s but got %s.',
-                AmqpTopic::class . '|' . AmqpQueue::class,
+                AmqpTopic::class.'|'.AmqpQueue::class,
                 get_class($dest)
             ));
         }

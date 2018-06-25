@@ -5,6 +5,7 @@ namespace Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Transport;
 use Enqueue\AmqpTools\DelayStrategyAware;
 use Interop\Queue\PsrContext;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Transport\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\SenderInterface;
 use Symfony\Component\Messenger\Transport\Serialization\DecoderInterface;
@@ -14,13 +15,15 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
 
 class RabbitMQTransportFactory implements TransportFactoryInterface
 {
+    private $dispatcher;
     private $decoder;
     private $encoder;
     private $debug;
     private $container;
 
-    public function __construct(DecoderInterface $decoder, EncoderInterface $encoder, ContainerInterface $container, bool $debug = false)
+    public function __construct(EventDispatcherInterface $dispatcher, DecoderInterface $decoder, EncoderInterface $encoder, ContainerInterface $container, bool $debug = false)
     {
+        $this->dispatcher = $dispatcher;
         $this->encoder = $encoder;
         $this->decoder = $decoder;
         $this->container = $container;
@@ -41,9 +44,10 @@ class RabbitMQTransportFactory implements TransportFactoryInterface
 
     public function createTransport(string $dsn, array $options): TransportInterface
     {
-        [$contextManager, $options] = $this->parseDsn($dsn);
+        list($contextManager, $options) = $this->parseDsn($dsn);
 
         return new RabbitMQTransport(
+            $this->dispatcher,
             $this->decoder,
             $this->encoder,
             $contextManager,
@@ -66,12 +70,12 @@ class RabbitMQTransportFactory implements TransportFactoryInterface
         if (isset($parsedDsn['query'])) {
             parse_str($parsedDsn['query'], $parsedQuery);
             $parsedQuery = array_map(function ($e) {
-                return is_numeric($e) ? (int)$e : $e;
+                return is_numeric($e) ? (int) $e : $e;
             }, $parsedQuery);
             $amqpOptions = array_replace_recursive($amqpOptions, $parsedQuery);
         }
 
-        if (!$this->container->has($contextService = 'enqueue.transport.' . $enqueueContextName . '.context')) {
+        if (!$this->container->has($contextService = 'enqueue.transport.'.$enqueueContextName.'.context')) {
             throw new \RuntimeException(sprintf(
                 'Can\'t find Enqueue\'s transport named "%s": Service "%s" is not found.',
                 $enqueueContextName,
