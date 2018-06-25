@@ -3,6 +3,7 @@
 namespace Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Transport;
 
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Event\MessageExceptionEvent;
+use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Events;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\RepeatMessageException;
 use Enqueue\AmqpBunny\AmqpProducer;
 use Enqueue\MessengerAdapter\ContextManager;
@@ -80,7 +81,7 @@ class RabbitMQTransport implements TransportInterface
                 $consumer->acknowledge($message);
             } catch (RejectMessageException $e) {
                 $consumer->reject($message);
-                $this->dispatcher->dispatch(MessageExceptionEvent::REJECT, new MessageExceptionEvent($message, $e));
+                $this->dispatcher->dispatch(Events::REJECT, new MessageExceptionEvent($message, $e));
             } catch (RepeatMessageException $e) {
                 // удаляем исходное сообщение
                 $consumer->reject($message);
@@ -92,14 +93,14 @@ class RabbitMQTransport implements TransportInterface
                 if ($attempts->isRepeatable()) {
                     $this->send($envelope->with($attempts));
                 } else {
-                    $this->dispatcher->dispatch(MessageExceptionEvent::REPEAT, new MessageExceptionEvent($message, $e));
+                    $this->dispatcher->dispatch(Events::REPEAT, new MessageExceptionEvent($message, $e));
                 }
             } catch (RequeueMessageException $e) {
                 $consumer->reject($message, true);
-                $this->dispatcher->dispatch(MessageExceptionEvent::REQUEUE, new MessageExceptionEvent($message, $e));
+                $this->dispatcher->dispatch(Events::REQUEUE, new MessageExceptionEvent($message, $e));
             } catch (\Throwable $e) {
                 $consumer->reject($message);
-                $this->dispatcher->dispatch(MessageExceptionEvent::THROWABLE, new MessageExceptionEvent($message, $e));
+                $this->dispatcher->dispatch(Events::THROWABLE, new MessageExceptionEvent($message, $e));
             }
         }
     }
