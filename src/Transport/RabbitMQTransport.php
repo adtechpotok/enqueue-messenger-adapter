@@ -4,13 +4,18 @@ namespace Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Transport;
 
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Event\MessageExceptionEvent;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Events;
-use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\RepeatMessageException;
 use Enqueue\AmqpBunny\AmqpProducer;
 use Enqueue\MessengerAdapter\ContextManager;
+use Enqueue\MessengerAdapter\EnvelopeItem\RepeatMessage;
+use Enqueue\MessengerAdapter\EnvelopeItem\TransportConfiguration;
 use Enqueue\MessengerAdapter\Exception\RejectMessageException;
+use Enqueue\MessengerAdapter\Exception\RepeatMessageException;
 use Enqueue\MessengerAdapter\Exception\RequeueMessageException;
 use Enqueue\MessengerAdapter\Exception\SendingMessageFailedException;
+use Interop\Queue\DeliveryDelayNotSupportedException;
 use Interop\Queue\Exception as InteropQueueException;
+use Interop\Queue\PriorityNotSupportedException;
+use Interop\Queue\TimeToLiveNotSupportedException;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Serialization\DecoderInterface;
@@ -28,8 +33,14 @@ class RabbitMQTransport implements TransportInterface
     private $debug;
     private $shouldStop;
 
-    public function __construct(EventDispatcherInterface $dispatcher, DecoderInterface $decoder, EncoderInterface $encoder, ContextManager $contextManager, array $options = [], $debug = false)
-    {
+    public function __construct(
+        EventDispatcherInterface $dispatcher,
+        DecoderInterface $decoder,
+        EncoderInterface $encoder,
+        ContextManager $contextManager,
+        array $options = [],
+        $debug = false
+    ) {
         $this->dispatcher = $dispatcher;
         $this->decoder = $decoder;
         $this->encoder = $encoder;
@@ -43,11 +54,13 @@ class RabbitMQTransport implements TransportInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @throws \Exception
      */
     public function receive(callable $handler): void
     {
         $psrContext = $this->contextManager->psrContext();
-        $destination = $this->getDestination();
+        $destination = $this->getDestination(null);
         $queue = $psrContext->createQueue($destination['queue']);
         $consumer = $psrContext->createConsumer($queue);
 
@@ -55,9 +68,10 @@ class RabbitMQTransport implements TransportInterface
             $this->contextManager->ensureExists($destination);
         }
 
-        while (!$this->shouldStop) {
+        while (! $this->shouldStop) {
             try {
                 if (null === ($message = $consumer->receive($this->options['receiveTimeout'] ?? 0))) {
+                    $handler(null);
                     continue;
                 }
             } catch (\Exception $e) {
@@ -67,34 +81,31 @@ class RabbitMQTransport implements TransportInterface
                 throw $e;
             }
 
-            // TODO - тоже в try
-            $envelope = $this->decoder->decode(
-                [
-                    'body'       => $message->getBody(),
-                    'headers'    => $message->getHeaders(),
-                    'properties' => $message->getProperties(),
-                ]
-            );
-
             try {
+                $envelope = $this->decoder->decode(
+                    [
+                        'body'       => $message->getBody(),
+                        'headers'    => $message->getHeaders(),
+                        'properties' => $message->getProperties(),
+                    ]
+                );
                 $handler($envelope);
                 $consumer->acknowledge($message);
-            } catch (RejectMessageException $e) {
-                $consumer->reject($message);
-                $this->dispatcher->dispatch(Events::REJECT, new MessageExceptionEvent($message, $e));
             } catch (RepeatMessageException $e) {
-                // удаляем исходное сообщение
                 $consumer->reject($message);
-                // отправляем копию в отложенную очередь
-                $attempts = $envelope->get(AttemptsMessage::class);
-                if (null === $attempts) {
-                    $attempts = new AttemptsMessage($e->getTimeToDelay(), $e->getMaxAttempts());
+
+                $repeat = $envelope->get(RepeatMessage::class);
+                if (null === $repeat) {
+                    $repeat = new RepeatMessage($e->getTimeToDelay(), $e->getMaxAttempts());
                 }
-                if ($attempts->isRepeatable()) {
-                    $this->send($envelope->with($attempts));
+                if ($repeat->isRepeatable()) {
+                    $this->send($envelope->with($repeat));
                 } else {
                     $this->dispatcher->dispatch(Events::REPEAT, new MessageExceptionEvent($message, $e));
                 }
+            } catch (RejectMessageException $e) {
+                $consumer->reject($message);
+                $this->dispatcher->dispatch(Events::REJECT, new MessageExceptionEvent($message, $e));
             } catch (RequeueMessageException $e) {
                 $consumer->reject($message, true);
                 $this->dispatcher->dispatch(Events::REQUEUE, new MessageExceptionEvent($message, $e));
@@ -107,11 +118,15 @@ class RabbitMQTransport implements TransportInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @throws DeliveryDelayNotSupportedException
+     * @throws PriorityNotSupportedException
+     * @throws TimeToLiveNotSupportedException
      */
     public function send(Envelope $message): void
     {
         $psrContext = $this->contextManager->psrContext();
-        $destination = $this->getDestination();
+        $destination = $this->getDestination($message);
         $topic = $psrContext->createTopic($destination['topic']);
 
         if ($this->debug) {
@@ -139,10 +154,10 @@ class RabbitMQTransport implements TransportInterface
             $producer->setTimeToLive($this->options['timeToLive']);
         }
 
-        /** @var AttemptsMessage $attempts */
-        $attempts = $message->get(AttemptsMessage::class);
-        if (null !== $attempts) {
-            $producer->setDeliveryDelay($attempts->getNowDelayToMs());
+        /** @var RepeatMessage $repeat */
+        $repeat = $message->get(RepeatMessage::class);
+        if (null !== $repeat) {
+            $producer->setDeliveryDelay($repeat->getNowDelayToMs());
         }
 
         try {
@@ -186,10 +201,14 @@ class RabbitMQTransport implements TransportInterface
         $resolver->setAllowedTypes('timeToLive', ['null', 'int']);
     }
 
-    private function getDestination(): array
+    private function getDestination(?Envelope $message): array
     {
+        /** @var TransportConfiguration|null $configuration */
+        $configuration = $message ? $message->get(TransportConfiguration::class) : null;
+        $topic = null !== $configuration ? $configuration->getTopic() : null;
+
         return [
-            'topic' => $this->options['topic']['name'],
+            'topic' => $topic ?? $this->options['topic']['name'],
             'queue' => $this->options['queue']['name'],
         ];
     }
