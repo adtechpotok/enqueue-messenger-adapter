@@ -10,7 +10,7 @@ use Interop\Amqp\AmqpTopic;
 use Interop\Amqp\Impl\AmqpBind;
 use Interop\Queue\PsrContext;
 
-class RabbitMQContextManager implements ContextManager
+class AmqpContextManager implements ContextManager
 {
     private $psrContext;
 
@@ -49,13 +49,23 @@ class RabbitMQContextManager implements ContextManager
         }
 
         $topic = $this->psrContext->createTopic($destination['topic']);
-        $topic->setType(AmqpTopic::TYPE_TOPIC); // TODO - брать из DSN
-        $topic->addFlag(AmqpTopic::FLAG_DURABLE); // TODO - брать из DSN
+        $topic->setType(AmqpTopic::TYPE_TOPIC);
+        $topic->addFlag(AmqpTopic::FLAG_DURABLE);
+//        $topic->setType($destination['topic']['type']);
+//        if ($destination['durability']) {
+//            $topic->addFlag(AmqpTopic::FLAG_DURABLE);
+//        }
         $this->psrContext->declareTopic($topic);
 
         $queue = $this->psrContext->createQueue($destination['queue']);
-        $queue->addFlag(AmqpQueue::FLAG_DURABLE); // TODO - брать из DSN
-        $queue->setArgument('x-max-priority', 255); // TODO - брать из DSN
+        $queue->addFlag(AmqpQueue::FLAG_DURABLE);
+        $queue->setArgument('x-max-priority', 255);
+//        if ($destination['durability']) {
+//            $queue->addFlag(AmqpQueue::FLAG_DURABLE);
+//        }
+//        if ($destination['maximumPriority']) {
+//            $queue->setArgument('x-max-priority', $destination['maximumPriority']);
+//        }
         $this->psrContext->declareQueue($queue);
 
         $this->psrContext->bind(new AmqpBind($queue, $topic));

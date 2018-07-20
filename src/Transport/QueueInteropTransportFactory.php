@@ -2,10 +2,8 @@
 
 namespace Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Transport;
 
-use Enqueue\AmqpTools\DelayStrategyAware;
 use Interop\Queue\PsrContext;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Transport\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\SenderInterface;
 use Symfony\Component\Messenger\Transport\Serialization\DecoderInterface;
@@ -13,17 +11,15 @@ use Symfony\Component\Messenger\Transport\Serialization\EncoderInterface;
 use Symfony\Component\Messenger\Transport\TransportFactoryInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
-class RabbitMQTransportFactory implements TransportFactoryInterface
+class QueueInteropTransportFactory implements TransportFactoryInterface
 {
-    private $dispatcher;
     private $decoder;
     private $encoder;
     private $debug;
     private $container;
 
-    public function __construct(EventDispatcherInterface $dispatcher, DecoderInterface $decoder, EncoderInterface $encoder, ContainerInterface $container, bool $debug = false)
+    public function __construct(DecoderInterface $decoder, EncoderInterface $encoder, ContainerInterface $container, bool $debug = false)
     {
-        $this->dispatcher = $dispatcher;
         $this->encoder = $encoder;
         $this->decoder = $decoder;
         $this->container = $container;
@@ -46,8 +42,7 @@ class RabbitMQTransportFactory implements TransportFactoryInterface
     {
         list($contextManager, $options) = $this->parseDsn($dsn);
 
-        return new RabbitMQTransport(
-            $this->dispatcher,
+        return new QueueInteropTransport(
             $this->decoder,
             $this->encoder,
             $contextManager,
@@ -70,12 +65,12 @@ class RabbitMQTransportFactory implements TransportFactoryInterface
         if (isset($parsedDsn['query'])) {
             parse_str($parsedDsn['query'], $parsedQuery);
             $parsedQuery = array_map(function ($e) {
-                return is_numeric($e) ? (int) $e : $e;
+                return is_numeric($e) ? (int)$e : $e;
             }, $parsedQuery);
             $amqpOptions = array_replace_recursive($amqpOptions, $parsedQuery);
         }
 
-        if (!$this->container->has($contextService = 'enqueue.transport.'.$enqueueContextName.'.context')) {
+        if (!$this->container->has($contextService = 'enqueue.transport.' . $enqueueContextName . '.context')) {
             throw new \RuntimeException(sprintf(
                 'Can\'t find Enqueue\'s transport named "%s": Service "%s" is not found.',
                 $enqueueContextName,
@@ -87,12 +82,9 @@ class RabbitMQTransportFactory implements TransportFactoryInterface
         if (!$psrContext instanceof PsrContext) {
             throw new \RuntimeException(sprintf('Service "%s" not instanceof PsrContext', $contextService));
         }
-        if ($psrContext instanceof DelayStrategyAware) {
-            $psrContext->setDelayStrategy(new RabbitMqDelayPluginDelayStrategy());
-        }
 
         return [
-            new RabbitMQContextManager($psrContext),
+            new AmqpContextManager($psrContext),
             $amqpOptions,
         ];
     }

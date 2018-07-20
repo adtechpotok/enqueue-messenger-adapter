@@ -1,6 +1,6 @@
 services:
     adtech.enqueue.messenger_transport.factory:
-        class: 'Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Transport\RabbitMQTransportFactory'
+        class: 'Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Transport\QueueInteropTransportFactory'
         arguments:
             - '@messenger.transport.decoder'
             - '@messenger.transport.encoder'

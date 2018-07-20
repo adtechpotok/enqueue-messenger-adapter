@@ -12,7 +12,7 @@ use Interop\Amqp\AmqpTopic;
 use Interop\Amqp\Impl\AmqpBind;
 use Interop\Queue\InvalidDestinationException;
 
-class RabbitMqDelayPluginDelayStrategy implements DelayStrategy
+class RabbitMq375DelayPluginDelayStrategy implements DelayStrategy
 {
     /**
      * {@inheritdoc}
