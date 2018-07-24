@@ -10,7 +10,8 @@
   ],
   "require": {
     "php": ">=7.1",
-    "symfony/dependency-injection": "~3.4.6|~4.0",
+    "symfony/dependency-injection": "~3.4.6|~4.1",
+    "symfony/console": "~3.4.6|~4.1",
     "adtechpotok/messenger-adapter": "@dev",
     "enqueue/amqp-bunny": "^0.8.31"
   },

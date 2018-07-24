@@ -51,6 +51,7 @@ class AmqpContextManager implements ContextManager
         $topic = $this->psrContext->createTopic($destination['topic']);
         $topic->setType(AmqpTopic::TYPE_TOPIC);
         $topic->addFlag(AmqpTopic::FLAG_DURABLE);
+        // TODO - брать из DSN
 //        $topic->setType($destination['topic']['type']);
 //        if ($destination['durability']) {
 //            $topic->addFlag(AmqpTopic::FLAG_DURABLE);
@@ -60,6 +61,7 @@ class AmqpContextManager implements ContextManager
         $queue = $this->psrContext->createQueue($destination['queue']);
         $queue->addFlag(AmqpQueue::FLAG_DURABLE);
         $queue->setArgument('x-max-priority', 255);
+        // TODO - брать из DSN
 //        if ($destination['durability']) {
 //            $queue->addFlag(AmqpQueue::FLAG_DURABLE);
 //        }
