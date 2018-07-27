@@ -48,29 +48,18 @@ class AmqpContextManager implements ContextManager
             return false;
         }
 
-        $topic = $this->psrContext->createTopic($destination['topic']);
-        $topic->setType(AmqpTopic::TYPE_TOPIC);
+        $topic = $this->psrContext->createTopic($destination['topic']['name']);
+        $topic->setType($destination['topic']['type']);
         $topic->addFlag(AmqpTopic::FLAG_DURABLE);
-        // TODO - брать из DSN
-//        $topic->setType($destination['topic']['type']);
-//        if ($destination['durability']) {
-//            $topic->addFlag(AmqpTopic::FLAG_DURABLE);
-//        }
         $this->psrContext->declareTopic($topic);
 
-        $queue = $this->psrContext->createQueue($destination['queue']);
-        $queue->addFlag(AmqpQueue::FLAG_DURABLE);
-        $queue->setArgument('x-max-priority', 255);
-        // TODO - брать из DSN
-//        if ($destination['durability']) {
-//            $queue->addFlag(AmqpQueue::FLAG_DURABLE);
-//        }
-//        if ($destination['maximumPriority']) {
-//            $queue->setArgument('x-max-priority', $destination['maximumPriority']);
-//        }
-        $this->psrContext->declareQueue($queue);
-
-        $this->psrContext->bind(new AmqpBind($queue, $topic));
+        foreach ($destination['queue'] as $name) {
+            $queue = $this->psrContext->createQueue($name);
+            $queue->addFlag(AmqpQueue::FLAG_DURABLE);
+            $queue->setArgument('x-max-priority', 255);
+            $this->psrContext->declareQueue($queue);
+            $this->psrContext->bind(new AmqpBind($queue, $topic));
+        }
 
         return true;
     }
