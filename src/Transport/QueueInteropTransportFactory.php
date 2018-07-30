@@ -56,7 +56,7 @@ class QueueInteropTransportFactory extends \Enqueue\MessengerAdapter\QueueIntero
             $amqpOptions = array_replace_recursive($amqpOptions, $parsedQuery);
         }
 
-        if (! $this->container->has($contextService = 'enqueue.transport.' . $enqueueContextName . '.context')) {
+        if (!$this->container->has($contextService = 'enqueue.transport.'.$enqueueContextName.'.context')) {
             throw new \RuntimeException(
                 sprintf(
                     'Can\'t find Enqueue\'s transport named "%s": Service "%s" is not found.',
@@ -67,7 +67,7 @@ class QueueInteropTransportFactory extends \Enqueue\MessengerAdapter\QueueIntero
         }
 
         $psrContext = $this->container->get($contextService);
-        if (! $psrContext instanceof PsrContext) {
+        if (!$psrContext instanceof PsrContext) {
             throw new \RuntimeException(sprintf('Service "%s" not instanceof PsrContext', $contextService));
         }
 
