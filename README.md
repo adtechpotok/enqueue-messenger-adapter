@@ -56,9 +56,9 @@ In the transport DSN, you can add extra configuration. Here is the reference DSN
 
 ```
 adtech-enqueue://default
-    ?queue[name]=queue_name
-    &topic[name]=topic_name
-    &topic[type]=topic|fanout
+	?queue[][name]=queue_name
+	&topic[name]=topic_name
+    &topic[type]=topic|fanout|direct
     &deliveryDelay=1800
     &delayStrategy=Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Transport\RabbitMq375DelayPluginDelayStrategy
     &timeToLive=3600
