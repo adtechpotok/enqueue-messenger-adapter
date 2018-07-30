@@ -53,12 +53,12 @@ class AmqpContextManager implements ContextManager
         $topic->addFlag(AmqpTopic::FLAG_DURABLE);
         $this->psrContext->declareTopic($topic);
 
-        foreach ($destination['queue'] as $name) {
+        foreach ($destination['queue'] as $routingKey => $name) {
             $queue = $this->psrContext->createQueue($name);
             $queue->addFlag(AmqpQueue::FLAG_DURABLE);
             $queue->setArgument('x-max-priority', 255);
             $this->psrContext->declareQueue($queue);
-            $this->psrContext->bind(new AmqpBind($queue, $topic));
+            $this->psrContext->bind(new AmqpBind($queue, $topic, $routingKey));
         }
 
         return true;
