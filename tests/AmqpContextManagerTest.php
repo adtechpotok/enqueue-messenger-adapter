@@ -7,6 +7,7 @@ use Enqueue\AmqpBunny\AmqpContext;
 use Interop\Amqp\AmqpQueue;
 use Interop\Amqp\AmqpTopic;
 use Interop\Amqp\Impl\AmqpBind;
+use Interop\Queue\PsrContext;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use SebastianBergmann\RecursionContext\InvalidArgumentException;
@@ -19,7 +20,7 @@ class AmqpContextManagerTest extends TestCase
     public function getDataProvider(): array
     {
         return [
-            'returns_true' => [
+            'single_queue' => [
                 'destination' => [
                     'topic' => [
                         'name' => 'topicName',
@@ -29,78 +30,87 @@ class AmqpContextManagerTest extends TestCase
                         'routingKey' => 'queueName',
                     ],
                 ],
-                'context_class' => AmqpContext::class,
-                'expected'      => true,
             ],
-//            'returns_false' => [
-//                'destination' => [
-//                    'topic' => [
-//                        'name' => 'topicName',
-//                        'type' => AmqpTopic::TYPE_TOPIC,
-//                    ],
-//                    'queue' => [
-//                        'routingKey' => 'queueName',
-//                    ]
-//                ],
-//                'context_class' => , // TODO: придумать как сюда передать какой-нибудь класс, отличный от AmqpContext
-//                'expected' => false,
-//            ],
+            'multiple_queue' => [
+                'destination' => [
+                    'topic' => [
+                        'name' => 'topicName',
+                        'type' => AmqpTopic::TYPE_DIRECT,
+                    ],
+                    'queue' => [
+                        'routingKey' => 'queueName',
+                        '*'          => 'queueName',
+                    ],
+                ],
+            ],
         ];
     }
 
     /**
-     * @param array  $destination
-     * @param string $contextClass
-     * @param bool   $expected
+     * @param array $destination
      *
      * @dataProvider getDataProvider
      *
      * @throws InvalidArgumentException
      * @throws \InvalidArgumentException
      */
-    public function testAmqpContextManager(array $destination, string $contextClass, bool $expected): void
+    public function testAmqpContextManager(array $destination): void
     {
-        $queuePsrContext = $this->createQueuePsrContextMock($contextClass, $destination);
-
+        $queuePsrContext = $this->createQueuePsrContextMock($destination);
         $contextManager = new AmqpContextManager($queuePsrContext);
 
-        static::assertSame($expected, $contextManager->ensureExists($destination));
+        $this->assertTrue($contextManager->ensureExists($destination));
     }
 
     /**
-     * @param string $contextClass
-     * @param array  $destination
+     * @throws InvalidArgumentException
+     * @throws \InvalidArgumentException
+     */
+    public function testAmqpContextManagerNotAmqpContext(): void
+    {
+        $psrContextMock = $this->createMock(PsrContext::class);
+        $contextManager = new AmqpContextManager($psrContextMock);
+
+        $this->assertFalse($contextManager->ensureExists([]));
+    }
+
+    /**
+     * @param array $destination
      *
      * @throws \InvalidArgumentException
      *
      * @return MockObject|AmqpContext
      */
-    protected function createQueuePsrContextMock(string $contextClass, array $destination): MockObject
+    protected function createQueuePsrContextMock(array $destination): MockObject
     {
         $topicParams = $destination['topic'];
         $topic = $this->createTopicMock($topicParams);
 
-        $queuePsrContext = $this->createMock($contextClass);
+        $queuePsrContext = $this->createMock(AmqpContext::class);
 
         $queuePsrContext->expects($this->once())
             ->method('createTopic')
             ->with($this->equalTo($topicParams['name']))
             ->willReturn($topic);
 
-        $queue = $this->createQueueMock();
+        $queueCount = \count($destination['queue']);
+        $queue = $this->createQueueMock($queueCount);
 
-        $queuePsrContext->expects($this->once())
+        $queuePsrContext->expects($this->exactly($queueCount))
             ->method('createQueue')
             ->with($this->equalTo($destination['queue']['routingKey']))
             ->willReturn($queue);
 
-        $queuePsrContext->expects($this->once())
+        $queuePsrContext->expects($this->exactly($queueCount))
             ->method('declareQueue')
             ->with($queue);
 
-        $queuePsrContext->expects($this->once())
+        $queuePsrContext->expects($this->exactly($queueCount))
             ->method('bind')
-            ->with(new AmqpBind($queue, $topic, key($destination['queue'])));
+            ->withConsecutive(
+                new AmqpBind($queue, $topic, key($destination['queue'])),
+                new AmqpBind($queue, $topic, null)
+            );
 
         return $queuePsrContext;
     }
@@ -124,19 +134,21 @@ class AmqpContextManagerTest extends TestCase
     }
 
     /**
+     * @param int $queueCount
+     *
      * @throws \InvalidArgumentException
      *
      * @return MockObject|AmqpQueue
      */
-    protected function createQueueMock(): MockObject
+    protected function createQueueMock(int $queueCount): MockObject
     {
         $queue = $this->createMock(AmqpQueue::class);
 
-        $queue->expects($this->once())
+        $queue->expects($this->exactly($queueCount))
             ->method('addFlag')
             ->with(AmqpQueue::FLAG_DURABLE);
 
-        $queue->expects($this->once())
+        $queue->expects($this->exactly($queueCount))
             ->method('setArgument')
             ->with('x-max-priority', 255);
 
