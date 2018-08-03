@@ -64,7 +64,7 @@ class AmqpContextManagerTest extends TestCase
 
         $contextManager = new AmqpContextManager($queuePsrContext);
 
-        static::assertEquals($expected, $contextManager->ensureExists($destination));
+        static::assertSame($expected, $contextManager->ensureExists($destination));
     }
 
     /**
