@@ -22,3 +22,7 @@ install:
 script:
   - php-cs-fixer fix --dry-run --diff --no-ansi
   - phpstan analyse src
+  - ./vendor/bin/phpunit
+
+services:
+  - redis-server
