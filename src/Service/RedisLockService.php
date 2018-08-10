@@ -3,65 +3,77 @@
 namespace Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Service;
 
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\MessageLocked;
-use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\MissedUuidEnvelopeItem;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\WritingKeyNotEqualWrittenKey;
-use Predis\Client;
+use Predis\ClientInterface;
 
-class RedisLockService
+class RedisLockService implements LockContract
 {
     /**
-     * @var Client
+     * @var ClientInterface
      */
     protected $client;
 
     /**
      * @var string
      */
-    protected $key;
+    protected $lockField;
+
+    /**
+     * @var string
+     */
+    protected $keyPrefix;
 
     /**
      * RedisLockService constructor.
      *
-     * @param Client $client
-     * @param string $key
+     * @param ClientInterface $client
+     * @param string          $keyPrefix
+     * @param string          $lockField
      */
-    public function __construct(Client $client, string $key)
+    public function __construct(ClientInterface $client, string $keyPrefix = '', string $lockField = 'worker_id')
     {
         $this->client = $client;
-        $this->key = $key;
+        $this->keyPrefix = $keyPrefix;
+        $this->lockField = $lockField;
     }
 
     /**
-     * @param string $lockId
-     * @param mixed  $lockField
+     * @param string      $workerId
+     * @param string      $messageUuid
+     * @param null|string $queueName
      *
-     * @throws MissedUuidEnvelopeItem
-     * @throws WritingKeyNotEqualWrittenKey
      * @throws MessageLocked
+     * @throws WritingKeyNotEqualWrittenKey
      *
      * @return bool
      */
-    public function lock($lockId, $lockField = 'worker_id'): bool
+    public function lock(string $workerId, string $messageUuid, ?string $queueName = null): bool
     {
-        $this->client->watch($this->key);
+        if ($queueName) {
+            $key = sprintf('%s%s_%s', $this->keyPrefix, $queueName, $messageUuid);
+        } else {
+            $key = $this->keyPrefix.$messageUuid;
+        }
 
-        $item = $this->client->hmget($this->key, [$lockField]);
+        $this->client->watch($key);
+
+        $item = $this->client->hmget($key, [$this->lockField]);
 
         if (!$item || !$item[0]) {
             $this->client->multi();
-            $this->client->hset($this->key, $lockField, $lockId);
+            $this->client->hset($key, $this->lockField, $workerId);
             $this->client->exec();
 
-            $writtenId = $this->client->hmget($this->key, [$lockField])[0];
+            $writtenId = $this->client->hmget($key, [$this->lockField])[0];
 
-            if ((string) $writtenId !== (string) $lockId) {
+            if ((string) $writtenId !== $workerId) {
                 // another client locked it earlier
-                throw (new WritingKeyNotEqualWrittenKey())->setLockKeys($lockId, $writtenId);
+                throw (new WritingKeyNotEqualWrittenKey())->setLockKeys($workerId, $writtenId);
             }
 
             return true;
         }
 
-        throw (new MessageLocked())->setRedisKey($this->key);
+        throw (new MessageLocked())->setRedisKey($key);
     }
 }

@@ -6,20 +6,19 @@ use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Contract\UniqueIdGetterInte
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\MessageLocked;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\MissedUuidEnvelopeItem;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\WritingKeyNotEqualWrittenKey;
-use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Service\RedisLockService;
+use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Service\LockContract;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\UuidEnvelopeItem;
 use Enqueue\MessengerAdapter\EnvelopeItem\QueueName;
-use Predis\Client;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\EnvelopeAwareInterface;
 use Symfony\Component\Messenger\Middleware\MiddlewareInterface;
 
-class RedisDeduplicationMiddleware implements MiddlewareInterface, EnvelopeAwareInterface
+class LockBasedDeduplicationMiddleware implements MiddlewareInterface, EnvelopeAwareInterface
 {
     /**
-     * @var Client
+     * @var LockContract
      */
-    protected $client;
+    protected $locker;
 
     /**
      * @var UniqueIdGetterInterface
@@ -27,30 +26,20 @@ class RedisDeduplicationMiddleware implements MiddlewareInterface, EnvelopeAware
     protected $uniqueIdGetter;
 
     /**
-     * @var string
-     */
-    protected $keyPrefix;
-
-    /**
-     * RedisDeduplicationMiddleware constructor.
+     * LockBasedDeduplicationMiddleware constructor.
      *
-     * @param Client                  $client
+     * @param LockContract            $locker
      * @param UniqueIdGetterInterface $uniqueIdGetter
-     * @param string                  $keyPrefix
      */
-    public function __construct(
-        Client $client,
-        UniqueIdGetterInterface $uniqueIdGetter,
-        string $keyPrefix
-    ) {
-        $this->client = $client;
+    public function __construct(LockContract $locker, UniqueIdGetterInterface $uniqueIdGetter)
+    {
+        $this->locker = $locker;
         $this->uniqueIdGetter = $uniqueIdGetter;
-        $this->keyPrefix = $keyPrefix;
     }
 
     /**
-     * @param \Symfony\Component\Messenger\Envelope $envelope
-     * @param callable                              $next
+     * @param Envelope $envelope
+     * @param callable $next
      *
      * @return mixed
      */
@@ -66,15 +55,13 @@ class RedisDeduplicationMiddleware implements MiddlewareInterface, EnvelopeAware
     }
 
     /**
-     * @param \Symfony\Component\Messenger\Envelope $envelope
+     * @param Envelope $envelope
      *
      * @throws MissedUuidEnvelopeItem
      * @throws WritingKeyNotEqualWrittenKey
      * @throws MessageLocked
-     *
-     * @return mixed
      */
-    public function lock(Envelope $envelope)
+    public function lock(Envelope $envelope): void
     {
         /** @var UuidEnvelopeItem|null $uuid */
         $uuid = $envelope->get(UuidEnvelopeItem::class);
@@ -86,13 +73,6 @@ class RedisDeduplicationMiddleware implements MiddlewareInterface, EnvelopeAware
         /** @var QueueName $queueName */
         $queueName = $envelope->get(QueueName::class);
 
-        if ($queueName) {
-            $key = sprintf('%s%s_%s', $this->keyPrefix, $queueName->getQueueName(), $uuid->getUuid());
-        } else {
-            $key = $this->keyPrefix.$uuid->getUuid();
-        }
-
-        (new RedisLockService($this->client, $key))
-            ->lock($this->uniqueIdGetter->getUniqueId());
+        $this->locker->lock($this->uniqueIdGetter->getUniqueId(), $uuid->getUuid(), $queueName ? $queueName->getQueueName() : null);
     }
 }

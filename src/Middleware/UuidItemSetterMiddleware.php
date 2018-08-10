@@ -11,8 +11,8 @@ use Symfony\Component\Messenger\Middleware\MiddlewareInterface;
 class UuidItemSetterMiddleware implements MiddlewareInterface, EnvelopeAwareInterface
 {
     /**
-     * @param \Symfony\Component\Messenger\Envelope $envelope
-     * @param callable                              $next
+     * @param Envelope $envelope
+     * @param callable $next
      *
      * @throws \RuntimeException
      *
@@ -24,7 +24,7 @@ class UuidItemSetterMiddleware implements MiddlewareInterface, EnvelopeAwareInte
             throw new \RuntimeException('Envelope was expected but actual '.get_class($envelope));
         }
 
-        $envelope = $envelope->with((new UuidEnvelopeItem())->setUuid(Uuid::uuid4()));
+        $envelope = $envelope->with(new UuidEnvelopeItem(Uuid::uuid4()));
 
         return $next($envelope);
     }

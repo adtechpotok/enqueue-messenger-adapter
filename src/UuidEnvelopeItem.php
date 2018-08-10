@@ -6,7 +6,20 @@ use Symfony\Component\Messenger\EnvelopeItemInterface;
 
 class UuidEnvelopeItem implements EnvelopeItemInterface
 {
+    /**
+     * @var string
+     */
     protected $uuid;
+
+    /**
+     * UuidEnvelopeItem constructor.
+     *
+     * @param string $uuid
+     */
+    public function __construct(string $uuid = '')
+    {
+        $this->setUuid($uuid);
+    }
 
     /**
      * @return string
@@ -21,7 +34,7 @@ class UuidEnvelopeItem implements EnvelopeItemInterface
      *
      * @return self
      */
-    public function setUuid(string $uuid)
+    public function setUuid(string $uuid): self
     {
         $this->uuid = $uuid;
 
@@ -31,7 +44,7 @@ class UuidEnvelopeItem implements EnvelopeItemInterface
     /**
      * {@inheritdoc}
      */
-    public function serialize()
+    public function serialize(): string
     {
         return serialize($this->uuid);
     }
@@ -39,7 +52,7 @@ class UuidEnvelopeItem implements EnvelopeItemInterface
     /**
      * {@inheritdoc}
      */
-    public function unserialize($serialized)
+    public function unserialize($serialized): void
     {
         $this->uuid = unserialize($serialized, ['allowed_classes' => false]);
     }

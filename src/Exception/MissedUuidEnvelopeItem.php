@@ -2,22 +2,33 @@
 
 namespace Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception;
 
-class MissedUuidEnvelopeItem extends \Error
+use InvalidArgumentException;
+use Symfony\Component\Messenger\Envelope;
+
+class MissedUuidEnvelopeItem extends InvalidArgumentException
 {
     /**
-     * @var \Symfony\Component\Messenger\Envelope|null
+     * @var Envelope|null
      */
     protected $envelope;
 
     /**
-     * @param \Symfony\Component\Messenger\Envelope $envelope
+     * @param Envelope $envelope
      *
-     * @return $this
+     * @return self
      */
-    public function setEnvelope($envelope)
+    public function setEnvelope(Envelope $envelope): self
     {
         $this->envelope = $envelope;
 
         return $this;
+    }
+
+    /**
+     * @return Envelope|null
+     */
+    public function getEnvelope(): ?Envelope
+    {
+        return $this->envelope;
     }
 }
