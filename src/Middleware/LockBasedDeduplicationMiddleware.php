@@ -3,11 +3,11 @@
 namespace Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Middleware;
 
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Contract\UniqueIdGetterInterface;
+use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\EnvelopeItem\UuidItem;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\MessageLocked;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\MissedUuidEnvelopeItem;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\WritingKeyNotEqualWrittenKey;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Service\LockContract;
-use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\EnvelopeItem\UuidItem;
 use Enqueue\MessengerAdapter\EnvelopeItem\QueueName;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\EnvelopeAwareInterface;
