@@ -9,6 +9,7 @@ use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\MissedUuidEnvelop
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\WritingKeyNotEqualWrittenKey;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Service\LockContract;
 use Enqueue\MessengerAdapter\EnvelopeItem\QueueName;
+use InvalidArgumentException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\EnvelopeAwareInterface;
 use Symfony\Component\Messenger\Middleware\MiddlewareInterface;
@@ -46,7 +47,7 @@ class LockBasedDeduplicationMiddleware implements MiddlewareInterface, EnvelopeA
     public function handle($envelope, callable $next)
     {
         if (!$envelope instanceof Envelope) {
-            throw new \RuntimeException('Envelope was expected but actual '.get_class($envelope));
+            throw new InvalidArgumentException('Envelope was expected but actual '.get_class($envelope));
         }
 
         $this->lock($envelope);
