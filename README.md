@@ -80,3 +80,93 @@ $this->bus->dispatch((new Envelope($message))->with(new TransportConfiguration(
     ['topic' => 'specific-topic']
 )));
 ```
+
+## Message duplication preventing
+
+This package provide deduplication mechanism based on Redis optimistic locking (there is documentation https://redis.io/topics/transactions "Optimistic locking using check-and-set").
+It uses two dependencies which you have to implement by yourself.
+
+
+1. Configure UuidItemSetterMiddleware on produce bus.
+It will store UUID-4 identifier in envelope items.
+
+```yaml
+# config/packages/messenger.yaml
+framework:
+    messenger:
+        buses:
+            messenger.produce:
+                middleware:
+                    - Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Middleware\UuidItemSetterMiddleware
+```
+
+2. Implement UniqueIdGetterInterface interface and register it as a service.
+
+That interface will be used every time when LockBasedDeduplicationMiddleware will process a message.
+The method getUniqueId have to return a unique id each time when it will be called.
+LockBasedDeduplicationMiddleware will try to lock a message by this id.
+If it succeeds the message will be processed next otherwise you will get an exception.
+
+
+Example:
+```php
+class IdGenerator implements UniqueIdGetterInterface
+{
+    /** @var string */
+    protected $id;
+
+    public function __construct()
+    {
+        $this->generateId();
+    }
+
+    /**
+     * @return string
+     */
+    public function getUniqueId(): string
+    {
+        return $this->id;
+    }
+
+    public function generateId(): void
+    {
+        $this->id = uniqid('', true);
+    }
+}
+```
+
+```yaml
+#config/services.yaml
+services:
+    SystemBundle\Classes\IdGenerator:
+```
+
+3. Register redis-locker and deduplication middleware
+
+```yaml
+system.middleware.service.locker:
+    class: Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Service\RedisLockService
+    arguments:
+        - '@REDIS_CLIENT'
+        - 'rabbit_mq_'
+        - 'worker_id'
+
+messenger.middleware.lock_based_deduplication:
+    class: Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Middleware\LockBasedDeduplicationMiddleware
+    arguments:
+        - '@system.middleware.service.locker'
+        - '@SystemBundle\Classes\IdGenerator'
+```
+
+Where @REDIS_CLIENT is your configured redis client.
+
+4. Configure LockBasedDeduplicationMiddleware
+
+```yaml
+common:
+    messenger:
+        buses:
+            messenger.consume:
+                middleware:
+                    - messenger.middleware.lock_based_deduplication
+```
