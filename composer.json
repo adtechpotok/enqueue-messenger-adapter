@@ -13,7 +13,7 @@
     "adtechpotok/messenger-adapter": "@dev",
     "enqueue/amqp-bunny": "^0.8.31",
     "predis/predis": "^1.1",
-    "ramsey/uuid": "3.x-dev",
+    "ramsey/uuid": "^3.8",
     "symfony/console": "~3.4.6|~4.1",
     "symfony/dependency-injection": "~3.4.6|~4.1",
     "symfony/serializer-pack": "^1.0"
