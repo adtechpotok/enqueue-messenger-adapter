@@ -1,10 +1,10 @@
 <?php
 
-namespace Adtechpotok\Bundle\EnqueueMessengerAdapterBundle;
+namespace Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\EnvelopeItem;
 
 use Symfony\Component\Messenger\EnvelopeItemInterface;
 
-class UuidEnvelopeItem implements EnvelopeItemInterface
+class UuidItem implements EnvelopeItemInterface
 {
     /**
      * @var string

@@ -7,7 +7,7 @@ use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\MessageLocked;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\MissedUuidEnvelopeItem;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\WritingKeyNotEqualWrittenKey;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Service\LockContract;
-use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\UuidEnvelopeItem;
+use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\EnvelopeItem\UuidItem;
 use Enqueue\MessengerAdapter\EnvelopeItem\QueueName;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\EnvelopeAwareInterface;
@@ -63,14 +63,14 @@ class LockBasedDeduplicationMiddleware implements MiddlewareInterface, EnvelopeA
      */
     public function lock(Envelope $envelope): void
     {
-        /** @var UuidEnvelopeItem|null $uuid */
-        $uuid = $envelope->get(UuidEnvelopeItem::class);
+        /** @var UuidItem|null $uuid */
+        $uuid = $envelope->get(UuidItem::class);
 
         if (!$uuid) {
             throw (new MissedUuidEnvelopeItem())->setEnvelope($envelope);
         }
 
-        /** @var QueueName $queueName */
+        /** @var QueueName|null $queueName */
         $queueName = $envelope->get(QueueName::class);
 
         $this->locker->lock($this->uniqueIdGetter->getUniqueId(), $uuid->getUuid(), $queueName ? $queueName->getQueueName() : null);
