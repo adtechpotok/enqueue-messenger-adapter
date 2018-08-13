@@ -55,7 +55,7 @@ bin/console messenger:consume-messages amqp
 In the transport DSN, you can add extra configuration. Here is the reference DSN (note that the values are just for the example):
 
 ```
-adtech-enqueue://default
+enqueue://default
 	?queue[routingKey][name]=queue_name
 	&topic[name]=topic_name
     &topic[type]=topic|fanout|direct
@@ -66,6 +66,21 @@ adtech-enqueue://default
     &priority=1
     &maximumPriority=255
     &durability=1
+```
+
+```yaml
+# config/packages/messenger.yaml
+framework:
+    messenger:
+        transports:
+            events: enqueue://default?queue[*][name]=events&topic[name]=events&topic[type]=topic
+            foo.events: enqueue://default?queue[foo][name]=foo.events&topic[name]=events&topic[type]=topic
+            bar.events: enqueue://default?queue[bar][name]=bar.events&topic[name]=events&topic[type]=topic
+
+        routing:
+            App\Message\EventsMessage: events
+            Foo\Message\EventsMessage: foo.events
+            Bar\Message\EventsMessage: bar.events
 ```
 
 ### Send a message on a specific topic
