@@ -25,6 +25,7 @@ class RedisLockServiceTest extends TestCase
             'hset',
             'watch',
             '__call',
+            'expire',
         ]);
 
         $redis->expects($this->exactly(1))
@@ -51,6 +52,7 @@ class RedisLockServiceTest extends TestCase
             'hset',
             'watch',
             '__call',
+            'expire',
         ]);
 
         $firstWorkerId = 1;
@@ -76,6 +78,10 @@ class RedisLockServiceTest extends TestCase
         $redis->expects($this->once())
             ->method('hset')
             ->willReturn(true);
+
+        $redis->expects($this->exactly(1))
+            ->method('expire')
+            ->with($messageUuid, RedisLockService::DEFAULT_LIFETIME);
 
         $service = new RedisLockService($redis);
 
