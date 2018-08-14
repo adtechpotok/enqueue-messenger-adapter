@@ -8,6 +8,8 @@ use Predis\ClientInterface;
 
 class RedisLockService implements LockContract
 {
+    public const DEFAULT_LIFETIME = 172800; // 2 days
+
     /**
      * @var ClientInterface
      */
@@ -24,16 +26,26 @@ class RedisLockService implements LockContract
     protected $keyPrefix;
 
     /**
+     * @var int
+     */
+    protected $keyLifetimeSeconds;
+
+    /**
      * RedisLockService constructor.
      *
      * @param ClientInterface $client
      * @param string          $keyPrefix
+     * @param int             $keyLifetimeSeconds
      * @param string          $lockField
      */
-    public function __construct(ClientInterface $client, string $keyPrefix = '', string $lockField = 'worker_id')
-    {
+    public function __construct(ClientInterface $client,
+        string $keyPrefix = '',
+        int $keyLifetimeSeconds = self::DEFAULT_LIFETIME,
+        string $lockField = 'worker_id'
+    ) {
         $this->client = $client;
         $this->keyPrefix = $keyPrefix;
+        $this->keyLifetimeSeconds = $keyLifetimeSeconds;
         $this->lockField = $lockField;
     }
 
@@ -62,6 +74,7 @@ class RedisLockService implements LockContract
         if (!$item || !$item[0]) {
             $this->client->multi();
             $this->client->hset($key, $this->lockField, $workerId);
+            $this->client->expire($key, $this->keyLifetimeSeconds);
             $this->client->exec();
 
             $writtenId = $this->client->hmget($key, [$this->lockField])[0];
