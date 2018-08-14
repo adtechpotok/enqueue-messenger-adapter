@@ -164,6 +164,7 @@ system.middleware.service.locker:
     arguments:
         - '@REDIS_CLIENT'
         - 'rabbit_mq_'
+        - 172800
         - 'worker_id'
 
 messenger.middleware.lock_based_deduplication:
