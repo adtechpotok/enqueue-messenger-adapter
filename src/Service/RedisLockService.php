@@ -52,6 +52,7 @@ class RedisLockService implements LockContract
     /**
      * @param string      $workerId
      * @param string      $messageUuid
+     * @param int         $attempt     = 0
      * @param null|string $queueName
      *
      * @throws MessageLocked
@@ -59,12 +60,12 @@ class RedisLockService implements LockContract
      *
      * @return bool
      */
-    public function lock(string $workerId, string $messageUuid, ?string $queueName = null): bool
+    public function lock(string $workerId, string $messageUuid, int $attempt = 0, ?string $queueName = null): bool
     {
         if ($queueName) {
-            $key = sprintf('%s%s_%s', $this->keyPrefix, $queueName, $messageUuid);
+            $key = sprintf('%s%s_%s_attempt_%d', $this->keyPrefix, $queueName, $messageUuid, $attempt);
         } else {
-            $key = $this->keyPrefix.$messageUuid;
+            $key = sprintf('%s%s_attempt_%d', $this->keyPrefix, $messageUuid, $attempt);
         }
 
         $this->client->watch($key);
