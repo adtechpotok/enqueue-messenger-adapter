@@ -3,5 +3,5 @@ services:
         autoconfigure: true
         autowire: true
 
-    Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Command\RabbitSync:
+    Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Command\AmqpUpdateCommand:
         arguments: [!tagged messenger.sender]

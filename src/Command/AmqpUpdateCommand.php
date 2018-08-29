@@ -12,10 +12,10 @@ use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class RabbitSync extends Command
+class AmqpUpdateCommand extends Command
 {
     /** @var string */
-    protected static $defaultName = 'rabbit:sync';
+    protected static $defaultName = 'amqp:update';
 
     /** @var ContextManager */
     private $contextManager;
