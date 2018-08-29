@@ -15,6 +15,8 @@ class RedisLockServiceTest extends TestCase
     {
         $messageUuid = uniqid('unit_', 'unit_');
 
+        $attempt = random_int(0, 100);
+
         $firstWorkerId = 1;
 
         /** @var MockObject|Client $redis */
@@ -30,19 +32,21 @@ class RedisLockServiceTest extends TestCase
 
         $redis->expects($this->exactly(1))
             ->method('hmget')
-            ->with($messageUuid)
+            ->with($messageUuid.'_attempt_'.$attempt)
             ->willReturn([$firstWorkerId + 1]);
 
         $service = new RedisLockService($redis);
 
         $this->expectException(MessageLocked::class);
 
-        $service->lock($firstWorkerId, $messageUuid);
+        $service->lock($firstWorkerId, $messageUuid, $attempt);
     }
 
     public function testWritingKeyNotEqualWrittenKeyException()
     {
         $messageUuid = uniqid('unit_', 'unit_');
+
+        $attempt = random_int(0, 100);
 
         /** @var MockObject|Client $redis */
         $redis = $this->createPartialMock(Client::class, [
@@ -59,7 +63,7 @@ class RedisLockServiceTest extends TestCase
 
         $redis->expects($this->exactly(2))
             ->method('hmget')
-            ->with($messageUuid)
+            ->with($messageUuid.'_attempt_'.$attempt)
             ->willReturn(null, [$firstWorkerId + 1]);
 
         $redis->expects($this->once())
@@ -68,7 +72,7 @@ class RedisLockServiceTest extends TestCase
 
         $redis->expects($this->once())
             ->method('watch')
-            ->with($messageUuid)
+            ->with($messageUuid.'_attempt_'.$attempt)
             ->willReturn(true);
 
         $redis->expects($this->once())
@@ -81,12 +85,12 @@ class RedisLockServiceTest extends TestCase
 
         $redis->expects($this->exactly(1))
             ->method('expire')
-            ->with($messageUuid, RedisLockService::DEFAULT_LIFETIME);
+            ->with($messageUuid.'_attempt_'.$attempt, RedisLockService::DEFAULT_LIFETIME);
 
         $service = new RedisLockService($redis);
 
         $this->expectException(WritingKeyNotEqualWrittenKey::class);
 
-        $service->lock($firstWorkerId, $messageUuid);
+        $service->lock($firstWorkerId, $messageUuid, $attempt);
     }
 }

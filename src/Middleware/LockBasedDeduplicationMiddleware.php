@@ -9,6 +9,7 @@ use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\MissedUuidEnvelop
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Exception\WritingKeyNotEqualWrittenKey;
 use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Service\LockContract;
 use Enqueue\MessengerAdapter\EnvelopeItem\QueueName;
+use Enqueue\MessengerAdapter\EnvelopeItem\RepeatMessage;
 use InvalidArgumentException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\EnvelopeAwareInterface;
@@ -74,6 +75,18 @@ class LockBasedDeduplicationMiddleware implements MiddlewareInterface, EnvelopeA
         /** @var QueueName|null $queueName */
         $queueName = $envelope->get(QueueName::class);
 
-        $this->locker->lock($this->uniqueIdGetter->getUniqueId(), $uuid->getUuid(), $queueName ? $queueName->getQueueName() : null);
+        $attempt = 0;
+
+        if ($repeat = $envelope->get(RepeatMessage::class)) {
+            /** @var RepeatMessage $repeat */
+            $attempt = $repeat->getAttempts();
+        }
+
+        $this->locker->lock(
+            $this->uniqueIdGetter->getUniqueId(),
+            $uuid->getUuid(),
+            $attempt,
+            $queueName ? $queueName->getQueueName() : null
+        );
     }
 }

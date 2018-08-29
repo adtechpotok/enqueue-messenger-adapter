@@ -11,6 +11,7 @@ interface LockContract
     /**
      * @param string      $uniqueId
      * @param string      $messageUuid
+     * @param int         $attempt
      * @param null|string $queueName
      *
      * @throws MissedUuidEnvelopeItem
@@ -19,5 +20,5 @@ interface LockContract
      *
      * @return bool
      */
-    public function lock(string $uniqueId, string $messageUuid, ?string $queueName = null): bool;
+    public function lock(string $uniqueId, string $messageUuid, int $attempt, ?string $queueName = null): bool;
 }
