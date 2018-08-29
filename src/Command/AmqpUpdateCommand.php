@@ -32,7 +32,7 @@ class AmqpUpdateCommand extends Command
      */
     public function __construct(iterable $transports, PsrContext $psrContext)
     {
-        if (! $psrContext instanceof AmqpContext) {
+        if (!$psrContext instanceof AmqpContext) {
             throw new InvalidArgumentException(
                 sprintf(
                     '$psrContext should be an instance of "%s" interface',
