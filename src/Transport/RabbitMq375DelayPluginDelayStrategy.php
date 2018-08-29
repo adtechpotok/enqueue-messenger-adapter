@@ -46,7 +46,7 @@ class RabbitMq375DelayPluginDelayStrategy implements DelayStrategy
         } else {
             throw new InvalidDestinationException(sprintf('The destination must be an instance of %s but got %s.',
                 AmqpTopic::class.'|'.AmqpQueue::class,
-                get_class($dest)
+                \get_class($dest)
             ));
         }
 

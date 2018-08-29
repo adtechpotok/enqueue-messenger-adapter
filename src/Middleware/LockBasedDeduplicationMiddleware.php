@@ -47,7 +47,7 @@ class LockBasedDeduplicationMiddleware implements MiddlewareInterface, EnvelopeA
     public function handle($envelope, callable $next)
     {
         if (!$envelope instanceof Envelope) {
-            throw new InvalidArgumentException('Envelope was expected but actual '.get_class($envelope));
+            throw new InvalidArgumentException('Envelope was expected but actual '.\get_class($envelope));
         }
 
         $this->lock($envelope);

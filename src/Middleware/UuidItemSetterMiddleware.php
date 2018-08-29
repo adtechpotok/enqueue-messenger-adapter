@@ -21,7 +21,7 @@ class UuidItemSetterMiddleware implements MiddlewareInterface, EnvelopeAwareInte
     public function handle($envelope, callable $next)
     {
         if (!$envelope instanceof Envelope) {
-            throw new \RuntimeException('Envelope was expected but actual '.get_class($envelope));
+            throw new \RuntimeException('Envelope was expected but actual '.\get_class($envelope));
         }
 
         $envelope = $envelope->with(new UuidItem(Uuid::uuid4()));
