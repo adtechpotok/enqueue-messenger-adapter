@@ -12,6 +12,7 @@
     "php": ">=7.1",
     "adtechpotok/messenger-adapter": "@dev",
     "enqueue/amqp-bunny": "^0.8.31",
+    "opentracing/opentracing": "1.0.0-beta5",
     "predis/predis": "^1.1",
     "ramsey/uuid": "^3.8",
     "symfony/console": "~3.4.6|~4.1",
