@@ -1,0 +1,7 @@
+services:
+    _defaults:
+        autoconfigure: true
+        autowire: true
+
+    Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Command\RabbitSync:
+        arguments: [!tagged messenger.sender]
