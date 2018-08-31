@@ -72,13 +72,13 @@ class OpenTracingConsumeMiddleware implements MiddlewareInterface, EnvelopeAware
             'finish_span_on_close' => true,
         ]);
 
-        $result = $next($envelope);
+        try {
+            return $next($envelope);
+        } finally {
+            $spanHandle->close();
+            $spanConsume->close();
 
-        $spanHandle->close();
-        $spanConsume->close();
-
-        $this->tracer->flush();
-
-        return $result;
+            $this->tracer->flush();
+        }
     }
 }
