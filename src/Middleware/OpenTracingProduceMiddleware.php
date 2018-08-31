@@ -45,10 +45,10 @@ class OpenTracingProduceMiddleware implements MiddlewareInterface, EnvelopeAware
 
         $this->tracer->inject($span->getContext(), Formats\TEXT_MAP, $carry);
 
-        $result = $next($envelope->with(new OpenTracingCarry($carry)));
-
-        $span->finish();
-
-        return $result;
+        try {
+            return $next($envelope->with(new OpenTracingCarry($carry)));
+        } finally {
+            $span->finish();
+        }
     }
 }
