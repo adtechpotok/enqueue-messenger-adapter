@@ -45,6 +45,13 @@ class OpenTracingProduceMiddleware implements MiddlewareInterface, EnvelopeAware
 
         $this->tracer->inject($span->getContext(), Formats\TEXT_MAP, $carry);
 
+        $span->setTag('message.produce.class_name', \get_class($envelope->getMessage()));
+
+        $span->log([
+            'message.payload' => \serialize($envelope->getMessage()),
+            'message.items'   => \serialize($envelope->all()),
+        ]);
+
         try {
             return $next($envelope->with(new OpenTracingCarry($carry)));
         } finally {
