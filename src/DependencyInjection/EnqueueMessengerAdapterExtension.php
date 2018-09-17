@@ -2,7 +2,6 @@
 
 namespace Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\DependencyInjection;
 
-use Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Transport\QueueInteropTransportFactory;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -20,7 +19,5 @@ class EnqueueMessengerAdapterExtension extends Extension implements CompilerPass
 
     public function process(ContainerBuilder $container)
     {
-        $definition = $container->findDefinition('enqueue.messenger_transport.factory');
-        $definition->setClass(QueueInteropTransportFactory::class);
     }
 }

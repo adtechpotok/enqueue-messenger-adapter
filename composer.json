@@ -10,9 +10,10 @@
   ],
   "require": {
     "php": ">=7.1",
-    "adtechpotok/messenger-adapter": "@dev",
+    "adtechpotok/messenger-adapter": "0.1.20",
     "adtechpotok/symfony-aware": "dev-master",
     "enqueue/amqp-bunny": "^0.8.31",
+    "queue-interop/queue-interop": "^0.6.2",
     "opentracing/opentracing": "1.0.0-beta5",
     "predis/predis": "^1.1",
     "ramsey/uuid": "^3.8",
