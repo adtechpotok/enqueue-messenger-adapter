@@ -5,3 +5,5 @@ services:
 
     Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\Command\AmqpUpdateCommand:
         arguments: [!tagged messenger.sender]
+
+    Adtechpotok\Bundle\EnqueueMessengerAdapterBundle\EventSubscriber\QueueInteropTransportSubscriber: ~
