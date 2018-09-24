@@ -12,7 +12,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class QueueInteropTransportSubscriber implements EventSubscriberInterface
 {
     /**
-     * @return array
+     * {@inheritdoc}
      */
     public static function getSubscribedEvents(): array
     {
